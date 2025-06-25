@@ -1,70 +1,141 @@
-# Getting Started with Create React App
+# Setting Up
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project implements a web application for transcribing podcast episodes, leveraging OpenAI's Whisper model for speech-to-text conversion and Algolia for efficient search indexing. The architecture comprises a Python Flask backend for core logic and data management, and a React frontend for user interaction.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Podcast RSS Feed Ingestion**: Parses provided RSS feed URLs to extract podcast episode metadata.
+- **Audio Sample Extraction**: Downloads and processes audio, extracting configurable random samples to optimize transcription time and resource consumption.
+- **Speech-to-Text Transcription**: Utilizes OpenAI's Whisper model for high-accuracy audio transcription.
+- **Local Data Persistence**: Stores episode titles and transcripts in a SQLite database.
+- **Algolia Integration**: Indexes transcribed content with Algolia for powerful, faceted search capabilities.
+- **Interactive Frontend**: A React application facilitating RSS URL submission and displaying transcription results.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Repository Structure
 
-### `npm test`
+The project adheres to a standard two-tier directory structure:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### `backend/`: Houses the Flask application and associated Python modules
 
-### `npm run build`
+- `app.py`: Flask application entry point and API routes  
+- `podcast_workflow.py`: Orchestration logic for the transcription pipeline  
+- `fetch_rss.py`: RSS feed parsing utility  
+- `download_audio.py`: Audio downloading and sampling logic  
+- `transcribe.py`: Whisper model integration  
+- `database.py`: SQLite database abstraction  
+- `upload_algolia.py`: Algolia API integration for indexing  
+- `requirements.txt`: Python package dependencies  
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### `frontend/`: Contains the React application
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- `public/`: Static assets  
+- `src/`: React source code (e.g., `App.js`, `index.js`)  
+- `package.json`: Node.js dependencies and project scripts  
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## Prerequisites
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Make sure the following tools are installed:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **Git** — Version control  
+- **Python 3.8+** — Backend runtime (`pip` will be available)  
+- **Node.js 14+ & npm 6+** — Frontend runtime and package manager  
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Setup Instructions
 
-## Learn More
+### 1. Repository Initialization
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Clone the project:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+git clone https://github.com/dwariyar/podcast_transcriber.git
+cd podcast_transcriber
+```
 
-### Code Splitting
+### 2. Backend Environment Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Navigate to the 'backend' directory:
 
-### Analyzing the Bundle Size
+```bash
+cd backend
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### a. Virtual Environment and Dependencies
 
-### Making a Progressive Web App
+Create and activate a Python virtual environment, then install required packages:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+python3 -m venv venv           # Create venv (use `py -m venv venv` on Windows)
+source venv/bin/activate       # Activate venv (use `.\venv\Scripts\activate.bat` or `.\venv\Scripts\Activate.ps1` on Windows)
+pip install -r requirements.txt
+```
 
-### Advanced Configuration
+### b. Environment Variables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Populate your Algolia API credentials by creating a .env file from the example.
+Edit .env to include your actual Algolia Application ID and Write API Key:
 
-### Deployment
+```bash
+APP_ID="YOUR_ACTUAL_ALGOLIA_APPLICATION_ID"
+ALGOLIA_WRITE_API_KEY="YOUR_ACTUAL_ALGOLIA_WRITE_API_KEY"
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Acquire these from your Algolia Dashboard. Ensure the Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions.
 
-### `npm run build` fails to minify
+### 3. Frontend Environment Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Navigate to the 'frontend' directory:
+
+```bash
+cd ../frontend
+```
+
+### a. Node.js Dependencies
+
+Install the necessary Node.js packages:
+
+```bash
+npm install
+```
+
+### b. Bootstrap Integration
+
+Bootstrap is utilized for frontend styling. Ensure its CSS is imported in your React application. The recommended approach is via 'src/index.js'.
+
+Verify 'frontend/src/index.js' includes:
+
+```bash
+import 'bootstrap/dist/css/bootstrap.min.css';
+```
+
+## Running the Application
+
+### 1. Start the Backend (Flask API)
+
+From the 'backend/' directory, ensure your Python virtual environment is active:
+
+```bash
+cd my_podcast_project/backend
+source venv/bin/activate # Or Windows equivalent
+python app.py
+```
+
+### 2. Start the Frontend (React App)
+
+From the 'frontend/' directory:
+
+```bash
+cd my_podcast_project/frontend
+npm start
+```
+
+The React development server will usually launch your browser to http://localhost:3000.
+
+With both services running, you can now interact with the Podcast Transcriber application via your browser.
