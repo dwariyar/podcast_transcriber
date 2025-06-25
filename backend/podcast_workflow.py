@@ -5,11 +5,11 @@ from datetime import datetime # Added for processed_date in database entry
 import gc # For garbage collection
 
 # Local module imports
-from backend.fetch_rss import RSSFetcher
-from backend.download_audio import AudioDownloader
-from backend.transcribe import Transcriber
-from backend.database import DatabaseManager
-from backend.upload_algolia import AlgoliaUploader
+from fetch_rss import RSSFetcher
+from download_audio import AudioDownloader
+from transcribe import Transcriber
+from database import DatabaseManager
+from upload_algolia import AlgoliaUploader
 
 class PodcastWorkflow:
     """

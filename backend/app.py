@@ -9,7 +9,7 @@ from flask_cors import CORS # Flask-CORS for handling Cross-Origin Resource Shar
 from dotenv import load_dotenv # For loading environment variables from a .env file
 
 # Local module imports from your backend
-from backend.podcast_workflow import PodcastWorkflow # Import PodcastWorkflow from its dedicated file
+from podcast_workflow import PodcastWorkflow # Import PodcastWorkflow from its dedicated file
 
 # Load environment variables from the .env file.
 load_dotenv()
