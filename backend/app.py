@@ -18,7 +18,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configure CORS (Cross-Origin Resource Sharing)
-CORS(app, origins="https://dwariyar.github.io/podcast_transcriber/")
+CORS(app, origins="https://dwariyar.github.io/")
 
 # --- Retrieve Algolia Credentials ---
 ALGOLIA_APP_ID = os.getenv("APP_ID") # Updated to use "APP_ID"
