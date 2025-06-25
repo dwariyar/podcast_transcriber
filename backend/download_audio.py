@@ -3,6 +3,7 @@ import requests   # For making HTTP requests, primarily to download audio files
 import random     # For selecting a random sample of audio for transcription
 import os         # For interacting with the operating system (e.g., file paths)
 import tempfile   # For creating and managing temporary files and directories
+import gc         # Import garbage collector for explicit memory management
 
 # Third-party library imports
 from pydub import AudioSegment # For audio manipulation (e.g., loading, slicing, exporting)
@@ -32,6 +33,7 @@ class AudioDownloader:
         print(f"Attempting to download audio from: {audio_url} ...")
         tmp_file_path = None
         sample_path = None
+        audio_segment = None # Initialize AudioSegment variable
         try:
             # Create a temporary file to store the full downloaded audio
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
@@ -47,17 +49,18 @@ class AudioDownloader:
             print(f"Successfully downloaded full audio to temporary file: {tmp_file_path}")
             
             # Load the entire audio file using pydub
-            audio = AudioSegment.from_file(tmp_file_path)
-            total_ms = len(audio) # Total duration in milliseconds
+            # This is the point where significant memory is consumed.
+            audio_segment = AudioSegment.from_file(tmp_file_path) # Assign to audio_segment
+            total_ms = len(audio_segment) # Total duration in milliseconds
             sample_ms = duration_sec * 1000 # Desired sample duration in milliseconds
 
             # Extract a random sample or the whole audio if it's shorter than the desired sample
             if total_ms <= sample_ms:
-                sample = audio
+                sample = audio_segment
                 print(f"Audio is shorter than {duration_sec}s, using full audio for sample.")
             else:
                 start_ms = random.randint(0, total_ms - sample_ms) # Random start point
-                sample = audio[start_ms:start_ms + sample_ms]
+                sample = audio_segment[start_ms:start_ms + sample_ms]
                 print(f"Extracted {duration_sec}s sample from {audio_url} (starting at {start_ms/1000:.2f}s).")
             
             # Export the sample to a WAV file, which is often preferred by transcription models
@@ -77,5 +80,16 @@ class AudioDownloader:
             # Ensure the initial full temporary audio file is removed
             if tmp_file_path and os.path.exists(tmp_file_path):
                 os.remove(tmp_file_path)
-                # print(f"Cleaned up full temporary audio file: {tmp_file_path}") # Verbose cleanup
+                print(f"Cleaned up full temporary audio file: {tmp_file_path}") # Added log
+
+            # Explicitly delete the AudioSegment object and force garbage collection
+            if audio_segment is not None:
+                del audio_segment
+                gc.collect() # Force garbage collection
+                print("Explicitly released audio_segment and forced GC in AudioDownloader.")
+            
+            # Clean up the temporary sample file if it was created and still exists
+            if sample_path and os.path.exists(sample_path):
+                os.remove(sample_path)
+                print(f"Cleaned up sample audio file: {sample_path}") # Added log
 
