@@ -1,14 +1,15 @@
 # Standard library imports
 import os
 import asyncio
-from datetime import datetime
+from datetime import datetime # Added for processed_date in database entry
+import gc # For garbage collection
 
 # Local module imports
-from .fetch_rss import RSSFetcher
-from .download_audio import AudioDownloader # Now includes memory cleanup
-from .transcribe import Transcriber
-from .database import DatabaseManager
-from .upload_algolia import AlgoliaUploader
+from backend.fetch_rss import RSSFetcher
+from backend.download_audio import AudioDownloader
+from backend.transcribe import Transcriber
+from backend.database import DatabaseManager
+from backend.upload_algolia import AlgoliaUploader
 
 class PodcastWorkflow:
     """
@@ -84,14 +85,13 @@ class PodcastWorkflow:
                     # Prepare data for the database and Algolia
                     podcast_entry = {
                         "title": episode_to_process["title"],
-                        "published": episode_to_process.get("published", datetime.now().isoformat()),
+                        "published": episode_to_process.get("published", datetime.now().isoformat()), # Assuming 'published' might be missing in some RSS feeds
                         "audio_url": episode_to_process["audio_url"],
                         "transcription": transcription,
                         "processed_date": datetime.now().isoformat()
                     }
 
                     # Save to local SQLite DB
-                    # The database still stores all fields for its own record keeping.
                     self.db_manager.save_transcript(podcast_entry["title"], podcast_entry["transcription"]) 
                     print(f"Saved '{podcast_entry['title']}' to database.")
 
