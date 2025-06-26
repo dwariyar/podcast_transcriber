@@ -28,9 +28,10 @@ const App = () => {
             // Make a POST request to your Flask backend's /transcribe endpoint
             // Dynamically determine the backend URL based on environment
             // In production (GitHub Pages build), it will use REACT_APP_API_BASE_URL from .env.production
-            // In development (localhost), it will default to http://localhost:5001
 
-            const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+            const API_BASE_URL = (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) 
+                         ? process.env.REACT_APP_API_BASE_URL 
+                         : 'https://podcast-transcriber-backend.onrender.com'; // Fallback
             const backendUrl = `${API_BASE_URL}/transcribe`;
 
             const response = await fetch(backendUrl, {
