@@ -79,7 +79,7 @@ class PodcastWorkflow:
                 
                 # Clean up the temporary audio sample file after processing
                 os.remove(sample_path)
-                print(f"Cleaned up sample file: {sample_path}")
+                print(f"Cleaned up sample audio file: {sample_path}")
             else:
                 print(f"Skipping transcription for '{ep['title']}' due to download/processing error.")
 

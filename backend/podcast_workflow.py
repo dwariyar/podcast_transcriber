@@ -130,5 +130,5 @@ class PodcastWorkflow:
             # The download_random_sample already handles this, but keep as a fallback.
             if sample_path and os.path.exists(sample_path):
                 os.remove(sample_path)
-                print(f"Cleaned up sample file (workflow level): {sample_path}")
+                print(f"Cleaned up sample audio file (workflow level): {sample_path}")
 

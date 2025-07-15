@@ -87,9 +87,4 @@ class AudioDownloader:
                 del audio_segment
                 gc.collect() # Force garbage collection
                 print("Explicitly released audio_segment and forced GC in AudioDownloader.")
-            
-            # Clean up the temporary sample file if it was created and still exists
-            if sample_path and os.path.exists(sample_path):
-                os.remove(sample_path)
-                print(f"Cleaned up sample audio file: {sample_path}") # Added log
 
