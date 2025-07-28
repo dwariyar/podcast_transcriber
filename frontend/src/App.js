@@ -10,6 +10,12 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Dynamically determine the backend URL based on environment
+    // In production (GitHub Pages build), it will use REACT_APP_API_BASE_URL from .env.production
+
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001';
+    const backendUrl = `${API_BASE_URL}/transcribe`;
+
     // Function to handle transcription by calling the Flask backend
     const handleTranscribe = async () => {
         setError('');
@@ -26,13 +32,6 @@ const App = () => {
 
         try {
             // Make a POST request to your Flask backend's /transcribe endpoint
-            // Dynamically determine the backend URL based on environment
-            // In production (GitHub Pages build), it will use REACT_APP_API_BASE_URL from .env.production
-
-            const API_BASE_URL = (typeof process !== 'undefined' && process.env.REACT_APP_API_BASE_URL) 
-                         ? process.env.REACT_APP_API_BASE_URL 
-                         : 'https://podcast-transcriber-backend.onrender.com'; // Fallback
-            const backendUrl = `${API_BASE_URL}/transcribe`;
 
             const response = await fetch(backendUrl, {
                 method: 'POST',
@@ -53,7 +52,7 @@ const App = () => {
             const result = await response.json();
 
             if (result.status === 'success') {
-                setTranscript(result.transcript || 'No transcript returned.');
+                setTranscript(result.transcription || 'No transcript returned.');
                 setStatus(result.message || 'Transcription complete!');
             } else {
                 // Handle cases where backend returns status: 'error' but still 200 OK

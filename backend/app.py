@@ -19,9 +19,9 @@ app = Flask(__name__)
 
 # Configure CORS (Cross-Origin Resource Sharing)
 CORS(app, 
-     origins=["https://dwariyar.github.io/"],
-     methods=["GET", "POST", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"],
+     origins=["https://dwariyar.github.io/", "http://localhost:3000"],
+     methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
+     allow_headers=["Content-Type", "Authorization", "*"],
      supports_credentials=True
 )
 
@@ -71,4 +71,4 @@ async def transcribe_podcast():
         return jsonify({"error": "Transcription failed due to an internal server error."}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.getenv("PORT", 5000), debug=True) # Use os.getenv for port
+    app.run(host='0.0.0.0', port=os.getenv("PORT", 5001), debug=True) # Use os.getenv for port

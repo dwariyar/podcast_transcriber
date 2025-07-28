@@ -68,7 +68,7 @@ class AlgoliaUploader:
 
         # Prepare objects in the format Algolia expects, including 'objectID'
         objects = [
-            {"objectID": str(rec[0]), "title": rec[1], "transcript": rec[2]}
+            {"objectID": str(rec["objectID"]), "title": rec["title"], "transcription": rec["transcription"]}
             for rec in records
         ]
 

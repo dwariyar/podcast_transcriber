@@ -3,6 +3,7 @@ import os
 import asyncio
 from datetime import datetime # Added for processed_date in database entry
 import gc # For garbage collection
+import traceback
 
 # Local module imports
 from fetch_rss import RSSFetcher
@@ -49,7 +50,7 @@ class PodcastWorkflow:
         """
         print("Starting podcast transcription workflow...")
         
-        # 1. Fetch episodes from RSS feed
+        # Fetch episodes from RSS feed
         episodes = self.rss_fetcher.parse_feed(self.rss_url)
         print(f"Found {len(episodes)} episodes with audio URLs.")
 
@@ -124,10 +125,10 @@ class PodcastWorkflow:
 
         except Exception as e:
             print(f"An unexpected error occurred in run_workflow: {e}")
+            traceback.print_exc()
             return {"error": f"An unexpected error occurred: {e}"}, 500
         finally:
             # Clean up the temporary audio sample file if it was created and still exists.
-            # The download_random_sample already handles this, but keep as a fallback.
             if sample_path and os.path.exists(sample_path):
                 os.remove(sample_path)
                 print(f"Cleaned up sample audio file (workflow level): {sample_path}")
