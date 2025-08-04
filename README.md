@@ -7,11 +7,12 @@ This project implements a web application for transcribing podcast episodes, lev
 ## Features
 
 - **Podcast RSS Feed Ingestion**: Parses provided RSS feed URLs to extract podcast episode metadata.
-- **Audio Sample Extraction**: Downloads and processes audio, extracting configurable random samples to optimize transcription time and resource consumption.
-- **Speech-to-Text Transcription**: Utilizes OpenAI's Whisper model for high-accuracy audio transcription.
+- **Audio Sample Extraction**: Downloads and processes audio, extracting user-defined random samples (in minutes) to optimize transcription time and resource consumption.
+- **Speech-to-Text Transcription**: Utilizes OpenAI's Whisper model for high-accuracy audio transcription, using a user-provided OpenAI API key.
 - **Local Data Persistence**: Stores episode titles and transcripts in a SQLite database.
-- **Algolia Integration**: Indexes transcribed content with Algolia for powerful, faceted search capabilities.
-- **Interactive Frontend**: A React application facilitating RSS URL submission and displaying transcription results.
+- **Algolia Integration**: Indexes transcribed content with Algolia for powerful search capabilities, using user-provided Algolia Application ID and Write API Key.
+- **Interactive Frontend**: A React application facilitating RSS URL submission, configurable number of episodes for transcription, displaying transcription results, and real-time granular process tracking.
+- **Algolia Dashboard Link**: Provides a direct link to the Algolia dashboard's index explorer, allowing users to view their indexed transcripts (requires Algolia login).
 
 ---
 
@@ -77,17 +78,9 @@ source venv/bin/activate       # Activate venv (use `.\venv\Scripts\activate.bat
 pip install -r requirements.txt
 ```
 
-### b. Environment Variables
+### b. Environment
 
-Populate your Algolia API credentials by creating a .env file from the example.
-Edit .env to include your actual Algolia Application ID and Write API Key:
-
-```bash
-APP_ID="YOUR_ACTUAL_ALGOLIA_APPLICATION_ID"
-ALGOLIA_WRITE_API_KEY="YOUR_ACTUAL_ALGOLIA_WRITE_API_KEY"
-```
-
-Acquire these from your Algolia Dashboard. Ensure the Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions.
+Acquire your Algolia Write API Key, App ID, and Open AI API key. Ensure the Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions.
 
 ### 3. Frontend Environment Configuration
 
@@ -139,3 +132,5 @@ npm start
 The React development server will usually launch your browser to http://localhost:3000.
 
 With both services running, you can now interact with the Podcast Transcriber application via your browser.
+
+You will now need to input your OpenAI API Key, Algolia Application ID, and Algolia Write API Key directly into the provided fields in the frontend UI before initiating a transcription.
