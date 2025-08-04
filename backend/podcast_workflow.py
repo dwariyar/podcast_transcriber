@@ -1,8 +1,8 @@
 # Standard library imports
 import os
 import asyncio
-from datetime import datetime # Added for processed_date in database entry
-import gc # For garbage collection
+from datetime import datetime
+import gc
 import traceback
 
 # Local module imports
@@ -19,117 +19,133 @@ class PodcastWorkflow:
     This class is now a standalone module.
     """
 
-    def __init__(self, rss_url, algolia_app_id=None, algolia_api_key=None, db_path="podcast_transcripts.db"):
+    def __init__(self, algolia_app_id=None, algolia_api_key=None, db_path="podcast_transcripts.db"):
         """
         Initializes the workflow components.
+        API keys are now passed dynamically per run or initialized to None.
 
         Args:
-            rss_url (str): The URL of the podcast's RSS feed.
-            algolia_app_id (str, optional): Your Algolia Application ID. Defaults to None.
-            algolia_api_key (str, optional): Your Algolia Write API Key. Defaults to None.
+            algolia_app_id (str, optional): User's Algolia Application ID. Defaults to None.
+            algolia_api_key (str, optional): User's Algolia Write API Key. Defaults to None.
             db_path (str, optional): Path to the SQLite database file. Defaults to "podcast_transcripts.db".
         """
-        self.rss_url = rss_url
         self.rss_fetcher = RSSFetcher()
         self.audio_downloader = AudioDownloader()
-        self.transcriber = Transcriber()
+        # self.transcriber is NO LONGER initialized here.
+        # It will be initialized inside run_workflow with the user-provided key.
         self.db_manager = DatabaseManager(db_path=db_path)
         
         self.algolia_uploader = None
-        # Initialize Algolia uploader only if credentials are provided
+        # Initialize Algolia uploader with provided credentials
         if algolia_app_id and algolia_api_key:
             try:
                 self.algolia_uploader = AlgoliaUploader(algolia_app_id, algolia_api_key)
             except ValueError as e:
                 print(f"Algolia Uploader initialization failed: {e}")
-                self.algolia_uploader = None # Ensure it's None if init failed
+                self.algolia_uploader = None
+        
+        self.status_messages = []
 
-    async def run_workflow(self):
+    def _log_status(self, message):
+        """Helper to append messages to the status list and print them."""
+        self.status_messages.append(f"{datetime.now().strftime('%H:%M:%S')} - {message}")
+        print(message)
+
+    async def run_workflow(self, rss_url, num_episodes=1, sample_duration=60, openai_api_key=None):
         """
         Executes the full podcast transcription and indexing workflow.
+
+        Args:
+            rss_url (str): The URL of the podcast's RSS feed.
+            num_episodes (int): The number of episodes to transcribe.
+            sample_duration (int): The duration in seconds for each audio sample.
+            openai_api_key (str): User-provided OpenAI API Key.
         """
-        print("Starting podcast transcription workflow...")
+        self.status_messages = []
+        self._log_status("Starting podcast transcription workflow...")
         
-        # Fetch episodes from RSS feed
-        episodes = self.rss_fetcher.parse_feed(self.rss_url)
-        print(f"Found {len(episodes)} episodes with audio URLs.")
+        # Initialize Transcriber here with the user-provided key
+        # This ensures the OpenAI client is only created when the key is available
+        transcriber_instance = Transcriber(openai_api_key=openai_api_key)
 
-        # --- IMPORTANT CHANGE: Process ONLY THE FIRST EPISODE for now ---
-        # This reduces the memory pressure by not looping through multiple episodes in one request.
+        self._log_status(f"Fetching {num_episodes} episodes from RSS feed: {rss_url}...")
+        episodes = self.rss_fetcher.parse_feed(rss_url, max_episodes=num_episodes)
+        self._log_status(f"Found {len(episodes)} episodes with audio URLs.")
+
         if not episodes:
-            print("No episodes with audio found to process.")
-            return {"message": "No episodes with audio found in the feed."}, 200 # Return specific message
+            self._log_status("No episodes with audio found to process.")
+            return {"message": "No episodes with audio found in the feed.", "status_updates": self.status_messages}, 200
 
-        # Take only the first episode for processing in this request
-        episode_to_process = episodes[0] 
-        print(f"\n--- Processing episode 1/1: {episode_to_process['title']} ---")
-        
-        sample_path = None # Initialize outside try for finally block access
-        try:
-            # Download a random sample of the episode's audio
-            sample_path = self.audio_downloader.download_random_sample(episode_to_process["audio_url"])
+        transcribed_episodes_info = []
 
-            if sample_path:
-                print(f"Sample saved to: {sample_path}")
-                
-                # Transcribe the audio sample
-                transcription = self.transcriber.transcribe_audio(sample_path)
-                
-                if "Error" in transcription: # Check for the 'Error' prefix in the string from Transcriber
-                    print(f"Transcription failed for '{episode_to_process['title']}': {transcription}")
-                    return {"error": transcription}, 500 # Return specific error
-                
-                if transcription:
-                    print(f"Transcript (first 200 chars) for '{episode_to_process['title']}':")
-                    print(transcription[:200] + "...")
+        for i, ep in enumerate(episodes):
+            self._log_status(f"\n--- Processing episode {i+1}/{len(episodes)}: {ep['title']} ---")
+            
+            sample_path = None
+            try:
+                self._log_status(f"Downloading {sample_duration}s audio sample for '{ep['title']}'...")
+                sample_path = self.audio_downloader.download_random_sample(ep["audio_url"], duration_sec=sample_duration)
+
+                if sample_path:
+                    self._log_status(f"Sample saved to: {sample_path}")
                     
-                    # Prepare data for the database and Algolia
-                    podcast_entry = {
-                        "title": episode_to_process["title"],
-                        "published": episode_to_process.get("published", datetime.now().isoformat()), # Assuming 'published' might be missing in some RSS feeds
-                        "audio_url": episode_to_process["audio_url"],
-                        "transcription": transcription,
-                        "processed_date": datetime.now().isoformat()
-                    }
-
-                    # Save to local SQLite DB
-                    self.db_manager.save_transcript(podcast_entry["title"], podcast_entry["transcription"]) 
-                    print(f"Saved '{podcast_entry['title']}' to database.")
-
-                    # Upload to Algolia (only this episode for now)
-                    if self.algolia_uploader:
-                        algolia_record = {
-                            "objectID": podcast_entry["audio_url"], # Unique ID for Algolia
-                            "title": podcast_entry["title"],
-                            "transcription": podcast_entry["transcription"]
+                    self._log_status(f"Transcribing audio sample for '{ep['title']}'...")
+                    # Use the newly created transcriber_instance
+                    transcription = transcriber_instance.transcribe_audio(sample_path)
+                    
+                    if "Error" in transcription:
+                        self._log_status(f"Transcription failed for '{ep['title']}': {transcription}")
+                        return {"error": transcription, "status_updates": self.status_messages}, 500
+                    
+                    if transcription:
+                        self._log_status(f"Transcription complete for '{ep['title']}'.")
+                        podcast_entry = {
+                            "title": ep["title"],
+                            "published": ep.get("published", datetime.now().isoformat()),
+                            "audio_url": ep["audio_url"],
+                            "transcription": transcription,
+                            "processed_date": datetime.now().isoformat()
                         }
-                        # AlgoliaUploader expects a list of records
-                        await self.algolia_uploader.upload_transcripts([algolia_record]) 
-                        print(f"Uploaded '{podcast_entry['title']}' to Algolia (lean record).")
+
+                        self._log_status(f"Saving '{podcast_entry['title']}' to database...")
+                        self.db_manager.save_transcript(podcast_entry["title"], podcast_entry["transcription"]) 
+                        self._log_status(f"Saved '{podcast_entry['title']}' to database.")
+
+                        transcribed_episodes_info.append({
+                            "title": podcast_entry["title"],
+                            "transcription_preview": transcription[:200] + "..." if len(transcription) > 200 else transcription,
+                            "full_transcription": transcription
+                        })
                     else:
-                        print("Algolia Uploader not initialized. Skipping Algolia upload for this episode.")
+                        self._log_status(f"No transcript generated for '{ep['title']}'.")
 
-                    return {
-                        "message": "Podcast episode processed successfully!",
-                        "episode_title": episode_to_process["title"],
-                        "transcription": transcription, # Return full transcription for frontend
-                        "transcription_preview": transcription[:200] + "..." if len(transcription) > 200 else transcription,
-                    }, 200 # Return success and data
                 else:
-                    print(f"No transcript generated for '{episode_to_process['title']}'.")
-                    return {"message": f"Transcription process completed, but no transcript generated for '{episode_to_process['title']}'."}, 200
+                    self._log_status(f"Skipping transcription for '{ep['title']}' due to download/processing error.")
 
-            else:
-                print(f"Skipping transcription for '{episode_to_process['title']}' due to download/processing error.")
-                return {"error": f"Failed to download/process audio sample for '{episode_to_process['title']}'."}, 500
+            except Exception as e:
+                self._log_status(f"An unexpected error occurred during processing '{ep['title']}': {e}")
+                traceback.print_exc()
+                return {"error": f"An unexpected error occurred during episode processing: {e}", "status_updates": self.status_messages}, 500
+            finally:
+                if sample_path and os.path.exists(sample_path):
+                    os.remove(sample_path)
+                    self._log_status(f"Cleaned up sample audio file (workflow level): {sample_path}")
+                gc.collect()
 
-        except Exception as e:
-            print(f"An unexpected error occurred in run_workflow: {e}")
-            traceback.print_exc()
-            return {"error": f"An unexpected error occurred: {e}"}, 500
-        finally:
-            # Clean up the temporary audio sample file if it was created and still exists.
-            if sample_path and os.path.exists(sample_path):
-                os.remove(sample_path)
-                print(f"Cleaned up sample audio file (workflow level): {sample_path}")
+        if self.algolia_uploader:
+            self._log_status("\n--- Uploading all processed data to Algolia ---")
+            all_records = self.db_manager.fetch_all_transcripts() 
+            await self.algolia_uploader.upload_transcripts(all_records)
+            self._log_status("Algolia upload process completed.")
+        else:
+            self._log_status("\nAlgolia Uploader not initialized. Skipping Algolia upload.")
 
+        self._log_status("\nPodcast transcription workflow completed.")
+
+        return {
+            "message": "Podcast transcription workflow completed successfully!",
+            "transcribed_episodes": transcribed_episodes_info,
+            "algolia_app_id": self.algolia_uploader.algolia_app_id if self.algolia_uploader else None,
+            "algolia_index": self.algolia_uploader.algolia_index if self.algolia_uploader else None,
+            "status_updates": self.status_messages
+        }, 200

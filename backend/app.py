@@ -1,17 +1,18 @@
 # Standard library imports
 import os
 import asyncio
-import json # To work with JSON data for API responses
+import json
 
 # Third-party library imports
-from flask import Flask, request, jsonify # Flask for web application, request for handling incoming data, jsonify for sending JSON responses
-from flask_cors import CORS # Flask-CORS for handling Cross-Origin Resource Sharing
-from dotenv import load_dotenv # For loading environment variables from a .env file
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from dotenv import load_dotenv
 
-# Local module imports from your backend
-from podcast_workflow import PodcastWorkflow # Import PodcastWorkflow from its dedicated file
+# Local module imports from backend
+from podcast_workflow import PodcastWorkflow
 
 # Load environment variables from the .env file.
+# We'll still load it for PORT, but API keys will come from frontend
 load_dotenv()
 
 # Initialize Flask app
@@ -25,24 +26,23 @@ CORS(app,
      supports_credentials=True
 )
 
-# --- Retrieve Algolia Credentials ---
-ALGOLIA_APP_ID = os.getenv("APP_ID") # Updated to use "APP_ID"
-ALGOLIA_WRITE_API_KEY = os.getenv("ALGOLIA_WRITE_API_KEY")
-RSS_URL_PLACEHOLDER = "https://feeds.npr.org/510310/podcast.xml" # Dummy URL for initial workflow instance
+# RSS_URL_PLACEHOLDER is still here for initial workflow instance creation
+RSS_URL_PLACEHOLDER = "https://feeds.npr.org/510310/podcast.xml"
 
 # This instance will handle all transcription/indexing.
+# It will be re-initialized with user-provided keys per request.
+# For now, initialize with None for keys as they will be passed dynamically.
 podcast_workflow_instance = PodcastWorkflow(
-    rss_url=RSS_URL_PLACEHOLDER, # This will be overwritten by request.json['rss_url']
-    algolia_app_id=ALGOLIA_APP_ID,
-    algolia_api_key=ALGOLIA_WRITE_API_KEY,
+    algolia_app_id=None, # Will be passed dynamically
+    algolia_api_key=None, # Will be passed dynamically
     db_path="podcast_transcripts.db"
 )
 
 @app.route('/transcribe', methods=['POST'])
 async def transcribe_podcast():
     """
-    API endpoint to receive an RSS feed URL and trigger podcast transcription.
-    Expects a JSON payload with an 'rss_url' key.
+    API endpoint to receive an RSS feed URL, transcription parameters,
+    and user-provided API keys to trigger podcast transcription.
     """
     print("Received request to /transcribe endpoint.")
     
@@ -51,24 +51,48 @@ async def transcribe_podcast():
         print("Invalid request: 'rss_url' missing from JSON payload.")
         return jsonify({"error": "Missing 'rss_url' in request"}), 400
 
+    # Extract all parameters from the request payload
     rss_url_from_frontend = data['rss_url']
-    print(f"Transcription request for RSS URL: {rss_url_from_frontend}")
-
-    # Update the workflow instance's RSS URL for the current request
-    podcast_workflow_instance.rss_url = rss_url_from_frontend
+    num_episodes = data.get('numEpisodes', 1)
+    sample_duration = data.get('sampleDuration', 60)
     
+    # Extract user-provided API keys
+    openai_api_key = data.get('openaiApiKey')
+    algolia_app_id = data.get('algoliaAppId')
+    algolia_write_api_key = data.get('algoliaWriteApiKey')
+
+    # Basic validation for keys
+    if not openai_api_key or not algolia_app_id or not algolia_write_api_key:
+        return jsonify({"error": "Missing one or more API keys in request payload."}), 400
+
+    print(f"Transcription request for RSS URL: {rss_url_from_frontend}, Episodes: {num_episodes}, Sample Duration: {sample_duration}s")
+
     try:
-        # Call run_workflow which now returns a (response_data, status_code) tuple
-        response_data, status_code = await podcast_workflow_instance.run_workflow()
+        # Re-initialize the workflow instance with user-provided keys for this request
+        # This ensures each request uses the specific keys provided by the user
+        current_workflow_instance = PodcastWorkflow(
+            algolia_app_id=algolia_app_id,
+            algolia_api_key=algolia_write_api_key,
+            db_path="podcast_transcripts.db" # Still use the default DB path
+        )
+        # Pass the OpenAI key to the workflow's run_workflow method
+        response_data, status_code = await current_workflow_instance.run_workflow(
+            rss_url=rss_url_from_frontend,
+            num_episodes=num_episodes,
+            sample_duration=sample_duration,
+            openai_api_key=openai_api_key # Pass OpenAI key
+        )
         
         return jsonify(response_data), status_code
 
     except ValueError as e:
         print(f"Workflow configuration error: {e}")
-        return jsonify({"error": str(e)}), 500
+        # Ensure status_messages are returned even on error
+        return jsonify({"error": str(e), "status_updates": podcast_workflow_instance.status_messages}), 500
     except Exception as e:
         print(f"An error occurred during workflow execution: {e}")
-        return jsonify({"error": "Transcription failed due to an internal server error."}), 500
+        # Ensure status_messages are returned even on error
+        return jsonify({"error": "Transcription failed due to an internal server error.", "status_updates": podcast_workflow_instance.status_messages}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=os.getenv("PORT", 5001), debug=True) # Use os.getenv for port
+    app.run(host='0.0.0.0', port=os.getenv("PORT", 5001), debug=True)

@@ -1,23 +1,23 @@
 # Standard library imports
-import os # For accessing environment variables
+import os
 
 # Third-party library imports
-from openai import OpenAI #Import the OpenAI client library
-from dotenv import load_dotenv #For loading environment variables
-load_dotenv() # Ensure env vars are loaded even if this file is run directly
+from openai import OpenAI
+from dotenv import load_dotenv
+load_dotenv()
 
 class Transcriber:
     """
     A class to handle audio transcription using the OpenAI Commercial Whisper API.
     """
 
-    def __init__(self):
-        # Initialize the OpenAI client here.
-        # This client will handle authentication using the API key.
-        # The actual model is NOT loaded into this server's memory.
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+    def __init__(self, openai_api_key): # Now requires openai_api_key as a direct argument
+        # Initialize the OpenAI client with the provided API key.
+        # No fallback to os.getenv as the key is expected to be provided by the user.
+        self.openai_api_key = openai_api_key
         if not self.openai_api_key:
-            print("WARNING: OPENAI_API_KEY environment variable not set in Transcriber.__init__. OpenAI API calls will fail.")
+            # This warning should ideally not be hit if app.py validates the key
+            print("WARNING: OpenAI API key not provided to Transcriber. OpenAI API calls will fail.")
         self.openai_client = OpenAI(api_key=self.openai_api_key)
 
     def transcribe_audio(self, audio_path):
@@ -26,7 +26,6 @@ class Transcriber:
 
         Args:
             audio_path (str): The file path to the audio sample to transcribe.
-                              This file will be sent to the OpenAI API.
 
         Returns:
             str: The transcribed text, or an error string if transcription fails or input is invalid.
@@ -36,22 +35,19 @@ class Transcriber:
             return "Error: No audio path provided."
         
         if not self.openai_api_key:
-            print("OpenAI API key not found. Cannot transcribe.")
+            print("OpenAI API key not found or provided. Cannot transcribe.")
             return "Error: OpenAI API key not configured."
         
         print(f"Transcribing audio with OpenAI Whisper API from: {audio_path} ...")
         try:
-            # Open the temporary audio file in binary read mode
-            # The OpenAI API expects a file-like object
             with open(audio_path, "rb") as audio_file:
-                # Call the OpenAI Whisper API. 'whisper-1' is the model ID for the API.
                 transcription = self.openai_client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file
                 )
             
             print("Transcription complete via OpenAI API.")
-            return transcription.text # The transcribed text is in the 'text' attribute of the response object
+            return transcription.text
         except Exception as e:
             print(f"Error during OpenAI Whisper API transcription of {audio_path}: {e}")
             return f"Error during transcription via OpenAI API: {e}"

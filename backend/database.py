@@ -67,17 +67,28 @@ class DatabaseManager:
 
     def fetch_all_transcripts(self):
         """
-        Retrieves all episode records (id, title, transcript) from the database.
+        Retrieves all episode records from the database and returns them
+        as a list of dictionaries, compatible with the Algolia uploader.
 
         Returns:
-            list: A list of tuples, where each tuple represents an episode record.
+            list: A list of dictionaries, where each dictionary represents an episode record.
         """
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         records = []
         try:
             c.execute("SELECT id, title, transcript FROM episodes")
-            records = c.fetchall()
+            raw_records = c.fetchall()
+            
+            # Convert tuples to dictionaries with keys expected by Algolia Uploader
+            records = [
+                {
+                    "objectID": str(rec[0]), # Using the unique 'id' as objectID
+                    "title": rec[1],
+                    "transcription": rec[2]
+                }
+                for rec in raw_records
+            ]
             print(f"Fetched {len(records)} records from database.")
         except sqlite3.Error as e:
             print(f"Error retrieving records from database: {e}")
