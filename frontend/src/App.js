@@ -234,7 +234,7 @@ const App = () => {
                     {/* Algolia Link */}
                     {algoliaLink && (
                         <div className="mt-4 text-center">
-                            <h3 className="text-center mb-2 text-dark fs-6 fw-semibold">View Algolia Dashboard:</h3>
+                            <h3 className="text-center mb-2 text-dark fs-6 fw-semibold">View in Algolia:</h3>
                             <Button 
                                 variant="outline-info" 
                                 href={algoliaLink} 
