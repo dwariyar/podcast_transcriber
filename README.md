@@ -62,7 +62,7 @@ cd podcast_transcriber
 
 ### 2. Backend Environment Configuration
 
-Navigate to the 'backend' directory:
+Navigate to the `backend/` directory:
 
 ```bash
 cd backend
@@ -82,9 +82,20 @@ pip install -r requirements.txt
 
 Acquire your Algolia Write API Key, App ID, and Open AI API key. Ensure the Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions.
 
+### c. Character Encoding (Important for Transcription)
+
+If you encounter a `UnicodeEncodeError` or `'ascii' codec can't encode character` error during transcription (especially with podcast titles or content containing special characters like curly quotes “ ”), it's likely due to your terminal's default character encoding.
+
+To ensure your Python environment correctly handles all Unicode characters, set your locale environment variables to UTF-8 before running your Flask backend:
+
+```bash
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
 ### 3. Frontend Environment Configuration
 
-Navigate to the 'frontend' directory:
+Navigate to the `frontend/` directory:
 
 ```bash
 cd ../frontend
@@ -100,9 +111,9 @@ npm install
 
 ### b. Bootstrap Integration
 
-Bootstrap is utilized for frontend styling. Ensure its CSS is imported in your React application. The recommended approach is via 'src/index.js'.
+Bootstrap is utilized for frontend styling. Ensure its CSS is imported in your React application. The recommended approach is via `src/index.js`.
 
-Verify 'frontend/src/index.js' includes:
+Verify `frontend/src/index.js` includes:
 
 ```bash
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -112,24 +123,26 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 ### 1. Start the Backend (Flask API)
 
-From the 'backend/' directory, ensure your Python virtual environment is active:
+From the `backend/` directory, ensure your Python virtual environment is active and you've set the locale environment variables (see 2.c above):
 
 ```bash
 cd my_podcast_project/backend
 source venv/bin/activate # Or Windows equivalent
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 python app.py
 ```
 
 ### 2. Start the Frontend (React App)
 
-From the 'frontend/' directory:
+From the `frontend/` directory:
 
 ```bash
 cd my_podcast_project/frontend
 npm start
 ```
 
-The React development server will usually launch your browser to http://localhost:3000.
+The React development server will usually launch your browser to `http://localhost:3000`.
 
 With both services running, you can now interact with the Podcast Transcriber application via your browser.
 
