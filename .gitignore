@@ -1,5 +1,6 @@
     # Python Venv and Cache
     venv/
+    .venv/
     __pycache__/
     *.pyc
     .pytest_cache/
@@ -35,3 +36,8 @@
     .DS_Store # macOS specific
     Thumbs.db # Windows specific
     
+    # ngrok executable/config
+    ngrok
+
+    # Log Files
+    *.log
