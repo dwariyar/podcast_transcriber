@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 # Configure CORS (Cross-Origin Resource Sharing)
 CORS(app, 
-     origins=["https://dwariyar.github.io/", "http://localhost:3000"],
+     origins=["https://dwariyar.github.io/", "http://localhost:3000", "https://podcast-transcriber-4x8ka.ondigitalocean.app/"],
      methods=["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
      allow_headers=["Content-Type", "Authorization", "*"],
      supports_credentials=True
