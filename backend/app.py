@@ -29,21 +29,6 @@ CORS(app,
 # RSS_URL_PLACEHOLDER is still here for initial workflow instance creation
 RSS_URL_PLACEHOLDER = "https://feeds.npr.org/510310/podcast.xml"
 
-# This instance will handle all transcription/indexing.
-podcast_workflow_instance = PodcastWorkflow(
-    algolia_app_id=None, # Will be passed dynamically
-    algolia_api_key=None, # Will be passed dynamically
-    db_path="podcast_transcripts.db"
-)
-
-@app.route('/ping', methods=['GET'])
-def ping():
-    """
-    A simple GET endpoint to check if the backend is alive and accessible.
-    """
-    print("Received request to /ping endpoint. Backend is alive!")
-    return jsonify({"message": "pong", "status": "Backend is alive"}), 200
-
 @app.route('/transcribe', methods=['POST'])
 async def transcribe_podcast():
     """
@@ -94,11 +79,11 @@ async def transcribe_podcast():
     except ValueError as e:
         print(f"Workflow configuration error: {e}")
         # Ensure status_messages are returned even on error
-        return jsonify({"error": str(e), "status_updates": podcast_workflow_instance.status_messages}), 500
+        return jsonify({"error": str(e), "status_updates": current_workflow_instance.status_messages}), 500
     except Exception as e:
         print(f"An error occurred during workflow execution: {e}")
         # Ensure status_messages are returned even on error
-        return jsonify({"error": "Transcription failed due to an internal server error.", "status_updates": podcast_workflow_instance.status_messages}), 500
+        return jsonify({"error": "Transcription failed due to an internal server error.", "status_updates": current_workflow_instance.status_messages}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.getenv("PORT", 5001), debug=True)
