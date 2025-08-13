@@ -58,7 +58,7 @@ async def transcribe_podcast():
 
     print(f"Transcription request for RSS URL: {rss_url_from_frontend}, Episodes: {num_episodes}, Sample Duration: {sample_duration}s")
 
-    # Initialize the workflow instance with user-provided keys for this request
+    # Initialize the workflow instance with user-provided keys for request
     # This ensures each request gets a fresh, isolated workflow instance.
     current_workflow_instance = PodcastWorkflow(
             algolia_app_id=algolia_app_id,
