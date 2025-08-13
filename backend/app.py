@@ -30,13 +30,19 @@ CORS(app,
 RSS_URL_PLACEHOLDER = "https://feeds.npr.org/510310/podcast.xml"
 
 # This instance will handle all transcription/indexing.
-# It will be re-initialized with user-provided keys per request.
-# For now, initialize with None for keys as they will be passed dynamically.
 podcast_workflow_instance = PodcastWorkflow(
     algolia_app_id=None, # Will be passed dynamically
     algolia_api_key=None, # Will be passed dynamically
     db_path="podcast_transcripts.db"
 )
+
+@app.route('/ping', methods=['GET'])
+def ping():
+    """
+    A simple GET endpoint to check if the backend is alive and accessible.
+    """
+    print("Received request to /ping endpoint. Backend is alive!")
+    return jsonify({"message": "pong", "status": "Backend is alive"}), 200
 
 @app.route('/transcribe', methods=['POST'])
 async def transcribe_podcast():
