@@ -58,14 +58,15 @@ async def transcribe_podcast():
 
     print(f"Transcription request for RSS URL: {rss_url_from_frontend}, Episodes: {num_episodes}, Sample Duration: {sample_duration}s")
 
-    try:
-        # Re-initialize the workflow instance with user-provided keys for this request
-        # This ensures each request uses the specific keys provided by the user
-        current_workflow_instance = PodcastWorkflow(
+    # Initialize the workflow instance with user-provided keys for this request
+    # This ensures each request gets a fresh, isolated workflow instance.
+    current_workflow_instance = PodcastWorkflow(
             algolia_app_id=algolia_app_id,
             algolia_api_key=algolia_write_api_key,
             db_path="podcast_transcripts.db" # Still use the default DB path
         )
+
+    try:
         # Pass the OpenAI key to the workflow's run_workflow method
         response_data, status_code = await current_workflow_instance.run_workflow(
             rss_url=rss_url_from_frontend,
