@@ -12,10 +12,11 @@ ENV LANG=en_US.UTF-8
 # If requirements.txt doesn't change, this layer is cached, speeding up builds
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
 EXPOSE 5001
 
-CMD ["gunicorn", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:5001", "app:app"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5001"]
