@@ -18,4 +18,4 @@ COPY . .
 
 EXPOSE 5001
 
-CMD ["gunicorn", "--workers", "4", "--worker-class", "eventlet", "--bind", "0.0.0.0:5001", "app:app"]
+CMD ["gunicorn", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:5001", "app:app"]
