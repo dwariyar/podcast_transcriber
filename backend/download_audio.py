@@ -4,6 +4,7 @@ import random     # For selecting a random sample of audio for transcription
 import os         # For interacting with the operating system (e.g., file paths)
 import tempfile   # For creating and managing temporary files and directories
 import gc         # Import garbage collector for explicit memory management
+import traceback
 
 # Third-party library imports
 from pydub import AudioSegment # For audio manipulation (e.g., loading, slicing, exporting)
@@ -74,7 +75,8 @@ class AudioDownloader:
             print(f"Error downloading audio from {audio_url}: {e}")
             return None
         except Exception as e:
-            print(f"An error occurred during audio processing (pydub error, etc.): {e}")
+            print(f"An error occurred during audio processing (pydub/ffmpeg error): {e}")
+            traceback.print_exc()
             return None
         finally:
             # Ensure the initial full temporary audio file is removed

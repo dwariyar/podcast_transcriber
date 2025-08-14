@@ -1,5 +1,6 @@
 # Standard library imports
 import os
+import traceback
 
 # Third-party library imports
 from openai import OpenAI
@@ -50,4 +51,5 @@ class Transcriber:
             return transcription.text
         except Exception as e:
             print(f"Error during OpenAI Whisper API transcription of {audio_path}: {e}")
+            traceback.print_exc()
             return f"Error during transcription via OpenAI API: {e}"
