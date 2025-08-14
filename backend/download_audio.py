@@ -27,57 +27,57 @@ class AudioDownloader:
         Returns:
             str or None: The file path to the saved WAV audio sample, or None if download/processing fails.
         """
+
         if not audio_url:
             print("Audio URL is empty, skipping download.")
             return None
 
-        print(f"Attempting to download audio from: {audio_url} ...")
         tmp_file_path = None
         sample_path = None
-        audio_segment = None # Initialize AudioSegment variable
-        try:
-            # Create a temporary file to store the full downloaded audio
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
-                # Use requests.get with stream=True for large files
-                response = requests.get(audio_url, stream=True)
-                response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+        audio_segment = None
 
-                # Write content in chunks to avoid memory issues for large files
+        try:
+            # Download full audio
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+                response = requests.get(audio_url, stream=True)
+                response.raise_for_status()
                 for chunk in response.iter_content(chunk_size=8192):
-                    if chunk: # Filter out keep-alive new chunks
+                    if chunk:
                         tmp_file.write(chunk)
                 tmp_file_path = tmp_file.name
-            print(f"Successfully downloaded full audio to temporary file: {tmp_file_path}")
-            
-            # Load the entire audio file using pydub
-            # This is the point where significant memory is consumed.
-            audio_segment = AudioSegment.from_file(tmp_file_path) # Assign to audio_segment
-            total_ms = len(audio_segment) # Total duration in milliseconds
-            sample_ms = duration_sec * 1000 # Desired sample duration in milliseconds
 
-            # Extract a random sample or the whole audio if it's shorter than the desired sample
+            print(f"Downloaded audio to temporary file: {tmp_file_path}")
+
+            # Load audio with pydub, redirecting ffmpeg stderr to sys.stderr
+            try:
+                audio_segment = AudioSegment.from_file(
+                    tmp_file_path, 
+                    format="mp3",
+                    ffmpeg_params=["-loglevel", "debug"]
+                )
+            except Exception as e:
+                print(f"Error loading audio with pydub/ffmpeg: {e}")
+                traceback.print_exc()
+                return None
+
+            total_ms = len(audio_segment)
+            sample_ms = duration_sec * 1000
             if total_ms <= sample_ms:
                 sample = audio_segment
-                print(f"Audio is shorter than {duration_sec}s, using full audio for sample.")
             else:
-                start_ms = random.randint(0, total_ms - sample_ms) # Random start point
+                start_ms = random.randint(0, total_ms - sample_ms)
                 sample = audio_segment[start_ms:start_ms + sample_ms]
-                print(f"Extracted {duration_sec}s sample from {audio_url} (starting at {start_ms/1000:.2f}s).")
-            
-            # Export the sample to a WAV file, which is often preferred by transcription models
-            sample_path = tmp_file_path.replace(".mp3", "_sample.wav") # Rename for clarity
-            sample.export(sample_path, format="wav")
+
+            sample_path = tmp_file_path.replace(".mp3", "_sample.wav")
+            try:
+                sample.export(sample_path, format="wav")
+            except Exception as e:
+                print(f"Error exporting audio to WAV: {e}")
+                traceback.print_exc()
+                return None
+
             print(f"Audio sample saved to: {sample_path}")
-            
             return sample_path
-        
-        except requests.exceptions.RequestException as e:
-            print(f"Error downloading audio from {audio_url}: {e}")
-            return None
-        except Exception as e:
-            print(f"An error occurred during audio processing (pydub/ffmpeg error): {e}")
-            traceback.print_exc()
-            return None
         finally:
             # Ensure the initial full temporary audio file is removed
             if tmp_file_path and os.path.exists(tmp_file_path):
