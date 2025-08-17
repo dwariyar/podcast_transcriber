@@ -1,5 +1,6 @@
 # Standard library imports
 import sqlite3 # For interacting with a local SQLite database to store transcripts
+import os # Not directly used in this snippet but commonly imported in this file
 
 class DatabaseManager:
     """
@@ -15,21 +16,27 @@ class DatabaseManager:
                                      Defaults to "podcast_transcripts.db".
         """
         self.db_path = db_path
-        self._init_database_table() # Ensure the table exists on initialization
+        self._create_table() # Ensure the table exists on initialization
 
-    def _init_database_table(self):
+    def _get_connection(self):
+        """
+        Returns a new database connection.
+        This method is now a central point for obtaining connections.
+        """
+        return sqlite3.connect(self.db_path)
+
+    def _create_table(self):
         """
         Initializes the SQLite database table.
-        Creates the 'episodes' table if it doesn't already exist,
-        with columns for id, title, and transcript.
+        Creates the 'podcast_transcripts' table if it doesn't already exist,
+        with columns for title and transcript.
         """
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
+        conn = self._get_connection() # Use the new _get_connection method
         try:
-            c.execute('''
-            CREATE TABLE IF NOT EXISTS episodes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
+            cursor = conn.cursor()
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS podcast_transcripts (
+                title TEXT PRIMARY KEY,
                 transcript TEXT
             )
             ''')
@@ -44,6 +51,7 @@ class DatabaseManager:
     def save_transcript(self, title, transcript):
         """
         Saves the episode title and its transcribed text to the SQLite database.
+        Uses INSERT OR REPLACE to update if title exists, or insert if new.
 
         Args:
             title (str): The title of the podcast episode.
@@ -53,39 +61,42 @@ class DatabaseManager:
             print("Title or transcript is empty, skipping database save.")
             return
 
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
+        conn = self._get_connection() # Use the new _get_connection method
         try:
-            c.execute("INSERT INTO episodes (title, transcript) VALUES (?, ?)", (title, transcript))
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO podcast_transcripts (title, transcript) VALUES (?, ?)
+            ''', (title, transcript))
             conn.commit()
             print(f"Saved '{title}' to database.")
         except sqlite3.Error as e:
             print(f"SQLite error saving '{title}': {e}")
-            conn.rollback()
+            conn.rollback() # Rollback changes if an error occurs
         finally:
             conn.close()
 
     def fetch_all_transcripts(self):
         """
-        Retrieves all episode records from the database and returns them
-        as a list of dictionaries, compatible with the Algolia uploader.
+        Retrieves all episode records (title, transcript) from the database.
 
         Returns:
-            list: A list of dictionaries, where each dictionary represents an episode record.
+            list: A list of dictionaries, where each dictionary represents a record
+                  with keys 'objectID', 'title', and 'transcription', suitable for Algolia.
         """
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
+        conn = self._get_connection() # Use the new _get_connection method
         records = []
         try:
-            c.execute("SELECT id, title, transcript FROM episodes")
-            raw_records = c.fetchall()
+            # Use row_factory to get dict-like rows
+            conn.row_factory = sqlite3.Row 
+            cursor = conn.cursor()
+            cursor.execute("SELECT title, transcript FROM podcast_transcripts")
+            raw_records = cursor.fetchall()
             
-            # Convert tuples to dictionaries with keys expected by Algolia Uploader
             records = [
                 {
-                    "objectID": str(rec[0]), # Using the unique 'id' as objectID
-                    "title": rec[1],
-                    "transcription": rec[2]
+                    "objectID": rec['title'], # Using title as objectID for consistency with save_transcript's PRIMARY KEY
+                    "title": rec['title'],
+                    "transcription": rec['transcript']
                 }
                 for rec in raw_records
             ]
@@ -101,7 +112,7 @@ class DatabaseManager:
         Deletes all records from the 'podcast_transcripts' table.
         This effectively clears the database for new runs.
         """
-        conn = self._get_connection()
+        conn = self._get_connection() # Use the new _get_connection method
         try:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM podcast_transcripts")
