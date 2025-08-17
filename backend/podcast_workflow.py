@@ -63,6 +63,10 @@ class PodcastWorkflow:
         """
         self.status_messages = []
         self._log_status("Starting podcast transcription workflow...")
+
+        # Clear the database at the start of each run
+        self._log_status("Clearing existing podcast transcripts from the database...")
+        self.db_manager.clear_all_transcripts()
         
         # Initialize Transcriber here with the user-provided key
         # This ensures the OpenAI client is only created when the key is available

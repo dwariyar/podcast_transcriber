@@ -96,3 +96,19 @@ class DatabaseManager:
             conn.close()
         return records
 
+    def clear_all_transcripts(self):
+        """
+        Deletes all records from the 'podcast_transcripts' table.
+        This effectively clears the database for new runs.
+        """
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM podcast_transcripts")
+            conn.commit()
+            print("All previous transcripts cleared from the database.")
+        except sqlite3.Error as e:
+            print(f"Error clearing database: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
