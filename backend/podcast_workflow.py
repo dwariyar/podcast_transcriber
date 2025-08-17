@@ -111,6 +111,20 @@ class PodcastWorkflow:
                         self.db_manager.save_transcript(podcast_entry["title"], podcast_entry["transcription"]) 
                         self._log_status(f"Saved '{podcast_entry['title']}' to database.")
 
+                        # UPLOAD TO ALGOLIA IMMEDIATELY AFTER PROCESSING EACH EPISODE
+                        if self.algolia_uploader:
+                            self._log_status(f"Uploading transcription for '{podcast_entry['title']}' to Algolia...")
+                            algolia_record = {
+                                "objectID": podcast_entry["audio_url"],
+                                "title": podcast_entry["title"],
+                                "transcription": podcast_entry["transcription"]
+                            }
+                            # Upload a list containing just this single record
+                            await self.algolia_uploader.upload_transcripts([algolia_record]) 
+                            self._log_status(f"Uploaded '{podcast_entry['title']}' to Algolia.")
+                        else:
+                            self._log_status("Algolia Uploader not initialized. Skipping Algolia upload for this episode.")
+
                         transcribed_episodes_info.append({
                             "title": podcast_entry["title"],
                             "transcription_preview": transcription[:200] + "..." if len(transcription) > 200 else transcription,
@@ -132,13 +146,11 @@ class PodcastWorkflow:
                     self._log_status(f"Cleaned up sample audio file (workflow level): {sample_path}")
                 gc.collect()
 
-        if self.algolia_uploader:
-            self._log_status("\n--- Uploading all processed data to Algolia ---")
-            all_records = self.db_manager.fetch_all_transcripts() 
-            await self.algolia_uploader.upload_transcripts(all_records)
-            self._log_status("Algolia upload process completed.")
-        else:
-            self._log_status("\nAlgolia Uploader not initialized. Skipping Algolia upload.")
+        # This section will only log if Algolia wasn't initialized at all or no new episodes were transcribed.
+        if not self.algolia_uploader:
+            self._log_status("\nAlgolia Uploader not initialized. No records were uploaded to Algolia during this run.")
+        elif not transcribed_episodes_info: # If algolia_uploader exists but no episodes were transcribed successfully
+            self._log_status("\nNo episodes were successfully transcribed to upload to Algolia.")
 
         self._log_status("\nPodcast transcription workflow completed.")
 
