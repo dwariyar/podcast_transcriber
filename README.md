@@ -1,6 +1,6 @@
 # Setting Up
 
-This project implements a web application for transcribing podcast episodes, leveraging OpenAI's Whisper model for speech-to-text conversion and Algolia for efficient search indexing. The architecture comprises a Python Flask backend for core logic and data management, and a React frontend for user interaction.
+This project implements a web application for transcribing podcast episodes, leveraging OpenAI's Whisper model for speech-to-text conversion and Algolia for efficient search indexing. The architecture comprises a Python Quart backend for core logic and data management, and a React frontend for user interaction.
 
 ---
 
@@ -20,9 +20,9 @@ This project implements a web application for transcribing podcast episodes, lev
 
 The project adheres to a standard two-tier directory structure:
 
-### `backend/`: Houses the Flask application and associated Python modules
+### `backend/`: Houses the Quart application and associated Python modules
 
-- `app.py`: Flask application entry point and API routes  
+- `app.py`: Quart application entry point, API routes, and a health check  
 - `podcast_workflow.py`: Orchestration logic for the transcription pipeline  
 - `fetch_rss.py`: RSS feed parsing utility  
 - `download_audio.py`: Audio downloading and sampling logic  
@@ -78,15 +78,15 @@ source venv/bin/activate       # Activate venv (use `.\venv\Scripts\activate.bat
 pip install -r requirements.txt
 ```
 
-### b. Environment
+### b. API Key Management
 
-Acquire your Algolia Write API Key, App ID, and Open AI API key. Ensure the Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions.
+Note: OpenAI and Algolia API keys (Application ID, Write API Key) are now provided directly via the frontend UI when you run the application. You do not need to configure them in backend environment variables (like a `.env` file) for the backend to function. Ensure your Algolia Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions for full functionality.
 
 ### c. Character Encoding (Important for Transcription)
 
 If you encounter a `UnicodeEncodeError` or `'ascii' codec can't encode character` error during transcription (especially with podcast titles or content containing special characters like curly quotes “ ”), it's likely due to your terminal's default character encoding.
 
-To ensure your Python environment correctly handles all Unicode characters, set your locale environment variables to UTF-8 before running your Flask backend:
+To ensure your Python environment correctly handles all Unicode characters, set your locale environment variables to UTF-8 before running your Quart backend:
 
 ```bash
 export LC_ALL=en_US.UTF-8
@@ -119,9 +119,9 @@ Verify `frontend/src/index.js` includes:
 import 'bootstrap/dist/css/bootstrap.min.css';
 ```
 
-## Running the Application
+## Running the Application Locally
 
-### 1. Start the Backend (Flask API)
+### 1. Start the Backend (Quart API)
 
 From the `backend/` directory, ensure your Python virtual environment is active and you've set the locale environment variables (see 2.c above):
 
@@ -130,7 +130,9 @@ cd my_podcast_project/backend
 source venv/bin/activate # Or Windows equivalent
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
-python app.py
+export PYTHONPATH=$PYTHONPATH:/path/to/backend
+export QUART_APP=app.py
+quart run --host 0.0.0.0 --port 5001
 ```
 
 ### 2. Start the Frontend (React App)
