@@ -60,6 +60,14 @@ git clone https://github.com/dwariyar/podcast_transcriber.git
 cd podcast_transcriber
 ```
 
+**Note**: The recent commit involving Redis and RQ likely will not work locally. To load the previous version, run the following command in the root directory of your project:
+
+```bash
+git checkout <COMMIT_HASH>
+```
+
+Replace `<COMMIT_HASH>` with the actual 7-character short hash of the desired commit. For this project, `0225d34` should be the commit hash to give you a stable version to work with.
+
 ### 2. Backend Environment Configuration
 
 Navigate to the `backend/` directory:
@@ -80,7 +88,7 @@ pip install -r requirements.txt
 
 ### b. API Key Management
 
-Note: OpenAI and Algolia API keys (Application ID, Write API Key) are now provided directly via the frontend UI when you run the application. You do not need to configure them in backend environment variables (like a `.env` file) for the backend to function. Ensure your Algolia Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions for full functionality.
+**Note**: OpenAI and Algolia API keys (Application ID, Write API Key) are now provided directly via the frontend UI when you run the application. You do not need to configure them in backend environment variables (like a `.env` file) for the backend to function. Ensure your Algolia Write API Key possesses addObject, deleteObject, listIndexes, and settings permissions for full functionality.
 
 ### c. Character Encoding (Important for Transcription)
 
